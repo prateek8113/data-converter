@@ -1,4 +1,3 @@
-// ProductCatalogConverter.jsx
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -31,8 +30,11 @@ const ProductCatalogConverter = () => {
   const [jsonOutput, setJsonOutput] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
   
-  // NEW STATE: Track all unique spec names that have been used
+  // Track all unique spec names that have been used
   const [savedSpecNames, setSavedSpecNames] = useState([]);
+
+  // Track the current specifications separately to persist them
+  const [currentSpecs, setCurrentSpecs] = useState({});
 
   const handleProductChange = (e) => {
     const { name, value } = e.target;
@@ -50,15 +52,19 @@ const ProductCatalogConverter = () => {
     });
   };
 
-  // Modified addSpec function to save spec names
   const addSpec = () => {
     if (newSpecKey && newSpecValue) {
+      // Update both the newProduct specs and separate currentSpecs
+      const updatedSpecs = {
+        ...currentSpecs,
+        [newSpecKey]: newSpecValue
+      };
+      
+      setCurrentSpecs(updatedSpecs);
+      
       setNewProduct({
         ...newProduct,
-        specs: {
-          ...newProduct.specs,
-          [newSpecKey]: newSpecValue
-        }
+        specs: updatedSpecs
       });
       
       // Save this spec name if it's not already saved
@@ -72,8 +78,11 @@ const ProductCatalogConverter = () => {
   };
 
   const removeSpec = (key) => {
-    const updatedSpecs = { ...newProduct.specs };
+    const updatedSpecs = { ...currentSpecs };
     delete updatedSpecs[key];
+    
+    setCurrentSpecs(updatedSpecs);
+    
     setNewProduct({
       ...newProduct,
       specs: updatedSpecs
@@ -93,15 +102,16 @@ const ProductCatalogConverter = () => {
         productCatalog: updatedCatalog
       });
 
-      // Reset product form but DON'T reset the savedSpecNames
+      // Reset only product ID, name, and image but KEEP the specs
       setNewProduct({
         id: "",
         name: "",
         image: "",
-        specs: {}
+        specs: { ...currentSpecs } // Keep the same specs
       });
       
-      // Clear only the current spec value, keep the name
+      // Clear the current spec key and value fields but keep currentSpecs
+      setNewSpecKey("");
       setNewSpecValue("");
     }
   };
@@ -138,6 +148,15 @@ const ProductCatalogConverter = () => {
     });
   };
 
+  const clearAllSpecs = () => {
+    // Clear all specs if needed
+    setCurrentSpecs({});
+    setNewProduct({
+      ...newProduct,
+      specs: {}
+    });
+  };
+
   const generateJSON = () => {
     setJsonOutput(JSON.stringify(formData, null, 2));
   };
@@ -164,9 +183,22 @@ const ProductCatalogConverter = () => {
     document.body.removeChild(textArea);
   };
 
-  // NEW: Function to select a saved spec name
+  // Function to select a saved spec name
   const selectSavedSpecName = (specName) => {
     setNewSpecKey(specName);
+  };
+  
+  // Function to edit a spec value directly
+  const editSpecValue = (key, value) => {
+    const updatedSpecs = { ...currentSpecs };
+    updatedSpecs[key] = value;
+    
+    setCurrentSpecs(updatedSpecs);
+    
+    setNewProduct({
+      ...newProduct,
+      specs: updatedSpecs
+    });
   };
 
   return (
@@ -259,9 +291,17 @@ const ProductCatalogConverter = () => {
               </div>
 
               <div className="mb-3">
-                <h4 className="h6 mb-2">Product Specifications</h4>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h4 className="h6 m-0">Product Specifications</h4>
+                  <button
+                    onClick={clearAllSpecs}
+                    className="btn btn-sm btn-warning"
+                  >
+                    Clear All Specs
+                  </button>
+                </div>
                 
-                {/* NEW: Display saved spec names as buttons */}
+                {/* Display saved spec names as buttons */}
                 {savedSpecNames.length > 0 && (
                   <div className="mb-3">
                     <label className="form-label">Saved Spec Names - Click to Select:</label>
@@ -308,14 +348,23 @@ const ProductCatalogConverter = () => {
                   </div>
                 </div>
                 
-                {/* Display current specs */}
-                {Object.keys(newProduct.specs).length > 0 && (
+                {/* Display current specs with inline editing */}
+                {Object.keys(currentSpecs).length > 0 && (
                   <div className="mt-3 p-3 bg-white border rounded">
                     <h5 className="h6 mb-2">Current Specifications:</h5>
                     <ul className="list-group">
-                      {Object.entries(newProduct.specs).map(([key, value]) => (
+                      {Object.entries(currentSpecs).map(([key, value]) => (
                         <li key={key} className="list-group-item d-flex justify-content-between align-items-center">
-                          <span><strong>{key}:</strong> {value}</span>
+                          <div className="d-flex align-items-center flex-grow-1 me-2">
+                            <strong className="me-2">{key}:</strong>
+                            <input
+                              type="text"
+                              value={value}
+                              onChange={(e) => editSpecValue(key, e.target.value)}
+                              className="form-control form-control-sm"
+                              style={{ maxWidth: '200px' }}
+                            />
+                          </div>
                           <button
                             onClick={() => removeSpec(key)}
                             className="btn btn-sm btn-danger"
