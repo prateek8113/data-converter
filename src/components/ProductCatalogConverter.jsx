@@ -102,18 +102,26 @@ const ProductCatalogConverter = () => {
         productCatalog: updatedCatalog
       });
 
-      // Reset only product ID, name, and image but KEEP the specs
-      setNewProduct({
-        id: "",
-        name: "",
-        image: "",
-        specs: { ...currentSpecs } // Keep the same specs
-      });
+      // No longer reset any fields - keep everything as is
+      // Just add success notification instead
       
-      // Clear the current spec key and value fields but keep currentSpecs
+      // Clear the current spec key but keep the values
       setNewSpecKey("");
-      setNewSpecValue("");
+      
+      // Show an alert that product was added successfully
+      alert(`Product "${newProduct.name}" (ID: ${newProduct.id}) added to Category ${activeCategoryIndex}!`);
     }
+  };
+
+  const clearProductForm = () => {
+    // Reset all product fields when explicitly requested
+    setNewProduct({
+      id: "",
+      name: "",
+      image: "",
+      specs: {}
+    });
+    setCurrentSpecs({});
   };
 
   const addService = () => {
@@ -253,7 +261,16 @@ const ProductCatalogConverter = () => {
 
           <div className="card mb-4 bg-light">
             <div className="card-body">
-              <h3 className="card-title h5 mb-3">Add New Product to Category {activeCategoryIndex}</h3>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h3 className="card-title h5 m-0">Add New Product to Category {activeCategoryIndex}</h3>
+                <button
+                  onClick={clearProductForm}
+                  className="btn btn-sm btn-warning"
+                >
+                  Clear All Fields
+                </button>
+              </div>
+              
               <div className="row mb-3">
                 <div className="col-md-4 mb-3">
                   <label className="form-label">Product ID</label>
