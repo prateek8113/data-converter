@@ -30,6 +30,9 @@ const ProductCatalogConverter = () => {
   const [newSpecValue, setNewSpecValue] = useState("");
   const [jsonOutput, setJsonOutput] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
+  
+  // NEW STATE: Track all unique spec names that have been used
+  const [savedSpecNames, setSavedSpecNames] = useState([]);
 
   const handleProductChange = (e) => {
     const { name, value } = e.target;
@@ -47,7 +50,7 @@ const ProductCatalogConverter = () => {
     });
   };
 
-  // Modified addSpec function to keep the spec name after adding
+  // Modified addSpec function to save spec names
   const addSpec = () => {
     if (newSpecKey && newSpecValue) {
       setNewProduct({
@@ -57,9 +60,14 @@ const ProductCatalogConverter = () => {
           [newSpecKey]: newSpecValue
         }
       });
-      // Keep the spec key (name) but clear only the spec value
+      
+      // Save this spec name if it's not already saved
+      if (!savedSpecNames.includes(newSpecKey)) {
+        setSavedSpecNames([...savedSpecNames, newSpecKey]);
+      }
+      
+      // Keep the spec key (name) and just clear the value
       setNewSpecValue("");
-      // DO NOT reset the spec key/name: setNewSpecKey("");
     }
   };
 
@@ -85,7 +93,7 @@ const ProductCatalogConverter = () => {
         productCatalog: updatedCatalog
       });
 
-      // Reset product form
+      // Reset product form but DON'T reset the savedSpecNames
       setNewProduct({
         id: "",
         name: "",
@@ -93,8 +101,7 @@ const ProductCatalogConverter = () => {
         specs: {}
       });
       
-      // Also reset the spec inputs when adding a product
-      setNewSpecKey("");
+      // Clear only the current spec value, keep the name
       setNewSpecValue("");
     }
   };
@@ -155,6 +162,11 @@ const ProductCatalogConverter = () => {
     }
     
     document.body.removeChild(textArea);
+  };
+
+  // NEW: Function to select a saved spec name
+  const selectSavedSpecName = (specName) => {
+    setNewSpecKey(specName);
   };
 
   return (
@@ -248,6 +260,25 @@ const ProductCatalogConverter = () => {
 
               <div className="mb-3">
                 <h4 className="h6 mb-2">Product Specifications</h4>
+                
+                {/* NEW: Display saved spec names as buttons */}
+                {savedSpecNames.length > 0 && (
+                  <div className="mb-3">
+                    <label className="form-label">Saved Spec Names - Click to Select:</label>
+                    <div className="d-flex flex-wrap gap-2">
+                      {savedSpecNames.map((specName, index) => (
+                        <button
+                          key={index}
+                          className={`btn btn-sm ${newSpecKey === specName ? 'btn-primary' : 'btn-outline-secondary'}`}
+                          onClick={() => selectSavedSpecName(specName)}
+                        >
+                          {specName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="row mb-2">
                   <div className="col-md-4 mb-2">
                     <input
