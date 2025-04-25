@@ -47,6 +47,7 @@ const ProductCatalogConverter = () => {
     });
   };
 
+  // Modified addSpec function to keep the spec name after adding
   const addSpec = () => {
     if (newSpecKey && newSpecValue) {
       setNewProduct({
@@ -56,8 +57,9 @@ const ProductCatalogConverter = () => {
           [newSpecKey]: newSpecValue
         }
       });
-      setNewSpecKey("");
+      // Keep the spec key (name) but clear only the spec value
       setNewSpecValue("");
+      // DO NOT reset the spec key/name: setNewSpecKey("");
     }
   };
 
@@ -90,6 +92,10 @@ const ProductCatalogConverter = () => {
         image: "",
         specs: {}
       });
+      
+      // Also reset the spec inputs when adding a product
+      setNewSpecKey("");
+      setNewSpecValue("");
     }
   };
 
