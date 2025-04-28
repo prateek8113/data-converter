@@ -22,7 +22,8 @@ const ProductCatalogConverter = () => {
     variants: {
       colors: [],
       sizes: []
-    }
+    },
+    pricing: {} // New pricing object to store size-based prices
   });
   const [newService, setNewService] = useState({
     title: "",
@@ -33,6 +34,7 @@ const ProductCatalogConverter = () => {
   const [newSpecValue, setNewSpecValue] = useState("");
   const [newColor, setNewColor] = useState("");
   const [newSize, setNewSize] = useState("");
+  const [newSizePrice, setNewSizePrice] = useState(""); // New state for size price
   const [jsonOutput, setJsonOutput] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
   
@@ -100,7 +102,7 @@ const ProductCatalogConverter = () => {
     }
   };
 
-  // Add a new size to the product variants
+  // Add a new size with price to the product variants
   const addSize = () => {
     if (newSize && !newProduct.variants.sizes.includes(newSize)) {
       const updatedVariants = {
@@ -108,12 +110,20 @@ const ProductCatalogConverter = () => {
         sizes: [...newProduct.variants.sizes, newSize]
       };
       
+      // Add price for this size if provided
+      const updatedPricing = { ...newProduct.pricing };
+      if (newSizePrice) {
+        updatedPricing[newSize] = parseFloat(newSizePrice);
+      }
+      
       setNewProduct({
         ...newProduct,
-        variants: updatedVariants
+        variants: updatedVariants,
+        pricing: updatedPricing
       });
       
       setNewSize("");
+      setNewSizePrice("");
     }
   };
 
@@ -128,14 +138,31 @@ const ProductCatalogConverter = () => {
     });
   };
 
-  // Remove a size from variants
+  // Remove a size from variants and its price
   const removeSize = (sizeToRemove) => {
+    const updatedPricing = { ...newProduct.pricing };
+    delete updatedPricing[sizeToRemove];
+    
     setNewProduct({
       ...newProduct,
       variants: {
         ...newProduct.variants,
         sizes: newProduct.variants.sizes.filter(size => size !== sizeToRemove)
-      }
+      },
+      pricing: updatedPricing
+    });
+  };
+
+  // Update price for a specific size
+  const updateSizePrice = (size, price) => {
+    const updatedPricing = {
+      ...newProduct.pricing,
+      [size]: parseFloat(price) || 0
+    };
+    
+    setNewProduct({
+      ...newProduct,
+      pricing: updatedPricing
     });
   };
 
@@ -164,9 +191,6 @@ const ProductCatalogConverter = () => {
         productCatalog: updatedCatalog
       });
 
-      // No longer reset any fields - keep everything as is
-      // Just add success notification instead
-      
       // Clear the current spec key but keep the values
       setNewSpecKey("");
       
@@ -185,7 +209,8 @@ const ProductCatalogConverter = () => {
       variants: {
         colors: [],
         sizes: []
-      }
+      },
+      pricing: {}
     });
     setCurrentSpecs({});
   };
@@ -427,14 +452,14 @@ const ProductCatalogConverter = () => {
                   </div>
                 </div>
                 
-                {/* Size Variants */}
+                {/* Size Variants with Price */}
                 <div className="card">
                   <div className="card-header bg-light">
-                    <h5 className="h6 mb-0">Size Options</h5>
+                    <h5 className="h6 mb-0">Size Options with Pricing</h5>
                   </div>
                   <div className="card-body">
                     <div className="row mb-2">
-                      <div className="col-md-8">
+                      <div className="col-md-5">
                         <input
                           type="text"
                           value={newSize}
@@ -443,32 +468,64 @@ const ProductCatalogConverter = () => {
                           placeholder="Enter size (e.g. Small, 120L, etc.)"
                         />
                       </div>
+                      <div className="col-md-3">
+                        <input
+                          type="number"
+                          value={newSizePrice}
+                          onChange={(e) => setNewSizePrice(e.target.value)}
+                          className="form-control"
+                          placeholder="Price"
+                          step="0.01"
+                        />
+                      </div>
                       <div className="col-md-4">
                         <button
                           onClick={addSize}
                           className="btn btn-success w-100"
                         >
-                          Add Size
+                          Add Size with Price
                         </button>
                       </div>
                     </div>
                     
                     {newProduct.variants.sizes.length > 0 ? (
                       <div className="mt-2">
-                        <h6 className="mb-2">Available Sizes:</h6>
-                        <div className="d-flex flex-wrap gap-2">
-                          {newProduct.variants.sizes.map((size, index) => (
-                            <div key={index} className="badge bg-secondary d-flex align-items-center p-2">
-                              {size}
-                              <button
-                                onClick={() => removeSize(size)}
-                                className="btn btn-sm text-white ms-2 p-0"
-                                style={{ fontSize: '12px' }}
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
+                        <h6 className="mb-2">Available Sizes with Prices:</h6>
+                        <div className="table-responsive">
+                          <table className="table table-sm table-bordered">
+                            <thead>
+                              <tr>
+                                <th>Size</th>
+                                <th>Price</th>
+                                <th>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {newProduct.variants.sizes.map((size, index) => (
+                                <tr key={index}>
+                                  <td>{size}</td>
+                                  <td>
+                                    <input
+                                      type="number"
+                                      value={newProduct.pricing[size] || ''}
+                                      onChange={(e) => updateSizePrice(size, e.target.value)}
+                                      className="form-control form-control-sm"
+                                      placeholder="Set price"
+                                      step="0.01"
+                                    />
+                                  </td>
+                                  <td>
+                                    <button
+                                      onClick={() => removeSize(size)}
+                                      className="btn btn-sm btn-danger"
+                                    >
+                                      Remove
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     ) : (
@@ -601,7 +658,7 @@ const ProductCatalogConverter = () => {
                               </button>
                             </div>
                             
-                            {/* Display colors and sizes */}
+                            {/* Display colors and sizes with prices */}
                             {(product.variants.colors.length > 0 || product.variants.sizes.length > 0) && (
                               <div className="mt-2">
                                 <p className="mb-1"><strong>Variants:</strong></p>
@@ -619,11 +676,24 @@ const ProductCatalogConverter = () => {
                                   
                                   {product.variants.sizes.length > 0 && (
                                     <div className="col-md-6 mb-2">
-                                      <p className="mb-1 small">Sizes:</p>
-                                      <div className="d-flex flex-wrap gap-1">
-                                        {product.variants.sizes.map((size, i) => (
-                                          <span key={i} className="badge bg-secondary">{size}</span>
-                                        ))}
+                                      <p className="mb-1 small">Sizes with Prices:</p>
+                                      <div className="table-responsive">
+                                        <table className="table table-sm">
+                                          <thead>
+                                            <tr>
+                                              <th>Size</th>
+                                              <th>Price</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {product.variants.sizes.map((size, i) => (
+                                              <tr key={i}>
+                                                <td>{size}</td>
+                                                <td>${product.pricing[size] ? product.pricing[size].toFixed(2) : 'N/A'}</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
                                       </div>
                                     </div>
                                   )}
@@ -656,7 +726,6 @@ const ProductCatalogConverter = () => {
       {/* Service Form - unchanged */}
       {activeTab === 'service' && (
         <div>
-          {/* Service form content unchanged */}
           <div className="card mb-4 bg-light">
             <div className="card-body">
               <h3 className="card-title h5 mb-3">Add New Service</h3>
@@ -736,7 +805,7 @@ const ProductCatalogConverter = () => {
         </div>
       )}
 
-      {/* Preview & Export - unchanged */}
+      {/* Preview & Export */}
       {activeTab === 'preview' && (
         <div>
           <div className="mb-4">
