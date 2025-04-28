@@ -21,9 +21,8 @@ const ProductCatalogConverter = () => {
     specs: {},
     variants: {
       colors: [],
-      sizes: []
-    },
-    pricing: {} // New pricing object to store size-based prices
+      sizes: [] // Will contain objects with {size, price} structure
+    }
   });
   const [newService, setNewService] = useState({
     title: "",
@@ -34,7 +33,7 @@ const ProductCatalogConverter = () => {
   const [newSpecValue, setNewSpecValue] = useState("");
   const [newColor, setNewColor] = useState("");
   const [newSize, setNewSize] = useState("");
-  const [newSizePrice, setNewSizePrice] = useState(""); // New state for size price
+  const [newSizePrice, setNewSizePrice] = useState(""); 
   const [jsonOutput, setJsonOutput] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
   
@@ -104,26 +103,27 @@ const ProductCatalogConverter = () => {
 
   // Add a new size with price to the product variants
   const addSize = () => {
-    if (newSize && !newProduct.variants.sizes.includes(newSize)) {
-      const updatedVariants = {
-        ...newProduct.variants,
-        sizes: [...newProduct.variants.sizes, newSize]
-      };
+    if (newSize) {
+      // Check if size already exists
+      const sizeExists = newProduct.variants.sizes.some(sizeObj => sizeObj.size === newSize);
       
-      // Add price for this size if provided
-      const updatedPricing = { ...newProduct.pricing };
-      if (newSizePrice) {
-        updatedPricing[newSize] = parseFloat(newSizePrice);
+      if (!sizeExists) {
+        const price = newSizePrice ? parseFloat(newSizePrice) : 0;
+        const newSizeObj = { size: newSize, price };
+        
+        const updatedVariants = {
+          ...newProduct.variants,
+          sizes: [...newProduct.variants.sizes, newSizeObj]
+        };
+        
+        setNewProduct({
+          ...newProduct,
+          variants: updatedVariants
+        });
+        
+        setNewSize("");
+        setNewSizePrice("");
       }
-      
-      setNewProduct({
-        ...newProduct,
-        variants: updatedVariants,
-        pricing: updatedPricing
-      });
-      
-      setNewSize("");
-      setNewSizePrice("");
     }
   };
 
@@ -138,31 +138,31 @@ const ProductCatalogConverter = () => {
     });
   };
 
-  // Remove a size from variants and its price
+  // Remove a size from variants
   const removeSize = (sizeToRemove) => {
-    const updatedPricing = { ...newProduct.pricing };
-    delete updatedPricing[sizeToRemove];
+    setNewProduct({
+      ...newProduct,
+      variants: {
+        ...newProduct.variants,
+        sizes: newProduct.variants.sizes.filter(sizeObj => sizeObj.size !== sizeToRemove)
+      }
+    });
+  };
+
+  // Update price for a specific size
+  const updateSizePrice = (sizeToUpdate, newPrice) => {
+    const updatedSizes = newProduct.variants.sizes.map(sizeObj => 
+      sizeObj.size === sizeToUpdate 
+        ? { ...sizeObj, price: parseFloat(newPrice) || 0 } 
+        : sizeObj
+    );
     
     setNewProduct({
       ...newProduct,
       variants: {
         ...newProduct.variants,
-        sizes: newProduct.variants.sizes.filter(size => size !== sizeToRemove)
-      },
-      pricing: updatedPricing
-    });
-  };
-
-  // Update price for a specific size
-  const updateSizePrice = (size, price) => {
-    const updatedPricing = {
-      ...newProduct.pricing,
-      [size]: parseFloat(price) || 0
-    };
-    
-    setNewProduct({
-      ...newProduct,
-      pricing: updatedPricing
+        sizes: updatedSizes
+      }
     });
   };
 
@@ -209,8 +209,7 @@ const ProductCatalogConverter = () => {
       variants: {
         colors: [],
         sizes: []
-      },
-      pricing: {}
+      }
     });
     setCurrentSpecs({});
   };
@@ -300,6 +299,16 @@ const ProductCatalogConverter = () => {
     });
   };
 
+  // Generate single product JSON for example
+  const generateSingleProductJSON = () => {
+    if (newProduct.id && newProduct.name) {
+      const singleProduct = { ...newProduct };
+      setJsonOutput(JSON.stringify(singleProduct, null, 2));
+    } else {
+      alert("Please fill at least ID and Name fields");
+    }
+  };
+
   return (
     <div className="container py-4">
       <h1 className="text-center mb-4">Product Catalog Data Converter</h1>
@@ -354,12 +363,20 @@ const ProductCatalogConverter = () => {
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h3 className="card-title h5 m-0">Add New Product to Category {activeCategoryIndex}</h3>
-                <button
-                  onClick={clearProductForm}
-                  className="btn btn-sm btn-warning"
-                >
-                  Clear All Fields
-                </button>
+                <div>
+                  <button
+                    onClick={generateSingleProductJSON}
+                    className="btn btn-sm btn-info me-2"
+                  >
+                    Preview Current Product JSON
+                  </button>
+                  <button
+                    onClick={clearProductForm}
+                    className="btn btn-sm btn-warning"
+                  >
+                    Clear All Fields
+                  </button>
+                </div>
               </div>
               
               <div className="row mb-3">
@@ -371,7 +388,7 @@ const ProductCatalogConverter = () => {
                     value={newProduct.id}
                     onChange={handleProductChange}
                     className="form-control"
-                    placeholder="e.g. 1"
+                    placeholder="e.g. w1"
                   />
                 </div>
                 <div className="col-md-4 mb-3">
@@ -382,7 +399,7 @@ const ProductCatalogConverter = () => {
                     value={newProduct.name}
                     onChange={handleProductChange}
                     className="form-control"
-                    placeholder="e.g. Crystal Chandelier"
+                    placeholder="e.g. wire"
                   />
                 </div>
                 <div className="col-md-4 mb-3">
@@ -393,7 +410,7 @@ const ProductCatalogConverter = () => {
                     value={newProduct.image}
                     onChange={handleProductChange}
                     className="form-control"
-                    placeholder="e.g. /images/chandelier.jpg"
+                    placeholder="e.g. /images/wire.jpg"
                   />
                 </div>
               </div>
@@ -415,7 +432,7 @@ const ProductCatalogConverter = () => {
                           value={newColor}
                           onChange={(e) => setNewColor(e.target.value)}
                           className="form-control"
-                          placeholder="Enter color (e.g. Red, Blue, etc.)"
+                          placeholder="Enter color (e.g. red, green, etc.)"
                         />
                       </div>
                       <div className="col-md-4">
@@ -465,7 +482,7 @@ const ProductCatalogConverter = () => {
                           value={newSize}
                           onChange={(e) => setNewSize(e.target.value)}
                           className="form-control"
-                          placeholder="Enter size (e.g. Small, 120L, etc.)"
+                          placeholder="Enter size (e.g. .75mm, 1mm, etc.)"
                         />
                       </div>
                       <div className="col-md-3">
@@ -501,14 +518,14 @@ const ProductCatalogConverter = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {newProduct.variants.sizes.map((size, index) => (
+                              {newProduct.variants.sizes.map((sizeObj, index) => (
                                 <tr key={index}>
-                                  <td>{size}</td>
+                                  <td>{sizeObj.size}</td>
                                   <td>
                                     <input
                                       type="number"
-                                      value={newProduct.pricing[size] || ''}
-                                      onChange={(e) => updateSizePrice(size, e.target.value)}
+                                      value={sizeObj.price}
+                                      onChange={(e) => updateSizePrice(sizeObj.size, e.target.value)}
                                       className="form-control form-control-sm"
                                       placeholder="Set price"
                                       step="0.01"
@@ -516,7 +533,7 @@ const ProductCatalogConverter = () => {
                                   </td>
                                   <td>
                                     <button
-                                      onClick={() => removeSize(size)}
+                                      onClick={() => removeSize(sizeObj.size)}
                                       className="btn btn-sm btn-danger"
                                     >
                                       Remove
@@ -686,10 +703,10 @@ const ProductCatalogConverter = () => {
                                             </tr>
                                           </thead>
                                           <tbody>
-                                            {product.variants.sizes.map((size, i) => (
+                                            {product.variants.sizes.map((sizeObj, i) => (
                                               <tr key={i}>
-                                                <td>{size}</td>
-                                                <td>${product.pricing[size] ? product.pricing[size].toFixed(2) : 'N/A'}</td>
+                                                <td>{sizeObj.size}</td>
+                                                <td>${sizeObj.price.toFixed(2)}</td>
                                               </tr>
                                             ))}
                                           </tbody>
