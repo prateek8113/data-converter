@@ -18,7 +18,11 @@ const ProductCatalogConverter = () => {
     id: "",
     name: "",
     image: "",
-    specs: {}
+    specs: {},
+    variants: {
+      colors: [],
+      sizes: []
+    }
   });
   const [newService, setNewService] = useState({
     title: "",
@@ -27,6 +31,8 @@ const ProductCatalogConverter = () => {
   });
   const [newSpecKey, setNewSpecKey] = useState("");
   const [newSpecValue, setNewSpecValue] = useState("");
+  const [newColor, setNewColor] = useState("");
+  const [newSize, setNewSize] = useState("");
   const [jsonOutput, setJsonOutput] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
   
@@ -77,6 +83,62 @@ const ProductCatalogConverter = () => {
     }
   };
 
+  // Add a new color to the product variants
+  const addColor = () => {
+    if (newColor && !newProduct.variants.colors.includes(newColor)) {
+      const updatedVariants = {
+        ...newProduct.variants,
+        colors: [...newProduct.variants.colors, newColor]
+      };
+      
+      setNewProduct({
+        ...newProduct,
+        variants: updatedVariants
+      });
+      
+      setNewColor("");
+    }
+  };
+
+  // Add a new size to the product variants
+  const addSize = () => {
+    if (newSize && !newProduct.variants.sizes.includes(newSize)) {
+      const updatedVariants = {
+        ...newProduct.variants,
+        sizes: [...newProduct.variants.sizes, newSize]
+      };
+      
+      setNewProduct({
+        ...newProduct,
+        variants: updatedVariants
+      });
+      
+      setNewSize("");
+    }
+  };
+
+  // Remove a color from variants
+  const removeColor = (colorToRemove) => {
+    setNewProduct({
+      ...newProduct,
+      variants: {
+        ...newProduct.variants,
+        colors: newProduct.variants.colors.filter(color => color !== colorToRemove)
+      }
+    });
+  };
+
+  // Remove a size from variants
+  const removeSize = (sizeToRemove) => {
+    setNewProduct({
+      ...newProduct,
+      variants: {
+        ...newProduct.variants,
+        sizes: newProduct.variants.sizes.filter(size => size !== sizeToRemove)
+      }
+    });
+  };
+
   const removeSpec = (key) => {
     const updatedSpecs = { ...currentSpecs };
     delete updatedSpecs[key];
@@ -119,7 +181,11 @@ const ProductCatalogConverter = () => {
       id: "",
       name: "",
       image: "",
-      specs: {}
+      specs: {},
+      variants: {
+        colors: [],
+        sizes: []
+      }
     });
     setCurrentSpecs({});
   };
@@ -307,6 +373,111 @@ const ProductCatalogConverter = () => {
                 </div>
               </div>
 
+              {/* Product Variants Section */}
+              <div className="mb-4">
+                <h4 className="h6 mb-3">Product Variants</h4>
+                
+                {/* Color Variants */}
+                <div className="card mb-3">
+                  <div className="card-header bg-light">
+                    <h5 className="h6 mb-0">Color Options</h5>
+                  </div>
+                  <div className="card-body">
+                    <div className="row mb-2">
+                      <div className="col-md-8">
+                        <input
+                          type="text"
+                          value={newColor}
+                          onChange={(e) => setNewColor(e.target.value)}
+                          className="form-control"
+                          placeholder="Enter color (e.g. Red, Blue, etc.)"
+                        />
+                      </div>
+                      <div className="col-md-4">
+                        <button
+                          onClick={addColor}
+                          className="btn btn-success w-100"
+                        >
+                          Add Color
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {newProduct.variants.colors.length > 0 ? (
+                      <div className="mt-2">
+                        <h6 className="mb-2">Available Colors:</h6>
+                        <div className="d-flex flex-wrap gap-2">
+                          {newProduct.variants.colors.map((color, index) => (
+                            <div key={index} className="badge bg-primary d-flex align-items-center p-2">
+                              {color}
+                              <button
+                                onClick={() => removeColor(color)}
+                                className="btn btn-sm text-white ms-2 p-0"
+                                style={{ fontSize: '12px' }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-muted small mt-2">No colors added yet.</p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Size Variants */}
+                <div className="card">
+                  <div className="card-header bg-light">
+                    <h5 className="h6 mb-0">Size Options</h5>
+                  </div>
+                  <div className="card-body">
+                    <div className="row mb-2">
+                      <div className="col-md-8">
+                        <input
+                          type="text"
+                          value={newSize}
+                          onChange={(e) => setNewSize(e.target.value)}
+                          className="form-control"
+                          placeholder="Enter size (e.g. Small, 120L, etc.)"
+                        />
+                      </div>
+                      <div className="col-md-4">
+                        <button
+                          onClick={addSize}
+                          className="btn btn-success w-100"
+                        >
+                          Add Size
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {newProduct.variants.sizes.length > 0 ? (
+                      <div className="mt-2">
+                        <h6 className="mb-2">Available Sizes:</h6>
+                        <div className="d-flex flex-wrap gap-2">
+                          {newProduct.variants.sizes.map((size, index) => (
+                            <div key={index} className="badge bg-secondary d-flex align-items-center p-2">
+                              {size}
+                              <button
+                                onClick={() => removeSize(size)}
+                                className="btn btn-sm text-white ms-2 p-0"
+                                style={{ fontSize: '12px' }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-muted small mt-2">No sizes added yet.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="mb-3">
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <h4 className="h6 m-0">Product Specifications</h4>
@@ -429,6 +600,37 @@ const ProductCatalogConverter = () => {
                                 Remove
                               </button>
                             </div>
+                            
+                            {/* Display colors and sizes */}
+                            {(product.variants.colors.length > 0 || product.variants.sizes.length > 0) && (
+                              <div className="mt-2">
+                                <p className="mb-1"><strong>Variants:</strong></p>
+                                <div className="row">
+                                  {product.variants.colors.length > 0 && (
+                                    <div className="col-md-6 mb-2">
+                                      <p className="mb-1 small">Colors:</p>
+                                      <div className="d-flex flex-wrap gap-1">
+                                        {product.variants.colors.map((color, i) => (
+                                          <span key={i} className="badge bg-primary">{color}</span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {product.variants.sizes.length > 0 && (
+                                    <div className="col-md-6 mb-2">
+                                      <p className="mb-1 small">Sizes:</p>
+                                      <div className="d-flex flex-wrap gap-1">
+                                        {product.variants.sizes.map((size, i) => (
+                                          <span key={i} className="badge bg-secondary">{size}</span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
                             <div className="mt-2">
                               <p className="mb-1"><strong>Specifications:</strong></p>
                               <ul className="list-group">
@@ -451,9 +653,10 @@ const ProductCatalogConverter = () => {
         </div>
       )}
 
-      {/* Service Form */}
+      {/* Service Form - unchanged */}
       {activeTab === 'service' && (
         <div>
+          {/* Service form content unchanged */}
           <div className="card mb-4 bg-light">
             <div className="card-body">
               <h3 className="card-title h5 mb-3">Add New Service</h3>
@@ -533,7 +736,7 @@ const ProductCatalogConverter = () => {
         </div>
       )}
 
-      {/* Preview & Export */}
+      {/* Preview & Export - unchanged */}
       {activeTab === 'preview' && (
         <div>
           <div className="mb-4">
