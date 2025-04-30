@@ -17,21 +17,26 @@ const ProductCatalogConverter = () => {
   const [newProduct, setNewProduct] = useState({
     id: "",
     name: "",
-    image: "",
+    image: "", // Default image
+    colorImages: {}, // For color-specific images
     specs: {},
     variants: {
       colors: [],
-      sizes: [] // Will contain objects with {size, price} structure
+      sizes: [] // Contains objects with {size, price} structure
     }
   });
+  
   const [newService, setNewService] = useState({
     title: "",
     description: "",
     image: ""
   });
+  
   const [newSpecKey, setNewSpecKey] = useState("");
   const [newSpecValue, setNewSpecValue] = useState("");
   const [newColor, setNewColor] = useState("");
+  const [newColorImage, setNewColorImage] = useState("");
+  const [selectedColorForImage, setSelectedColorForImage] = useState("");
   const [newSize, setNewSize] = useState("");
   const [newSizePrice, setNewSizePrice] = useState(""); 
   const [jsonOutput, setJsonOutput] = useState("");
@@ -101,6 +106,38 @@ const ProductCatalogConverter = () => {
     }
   };
 
+  // Add a color-specific image
+  const addColorImage = () => {
+    if (selectedColorForImage && newColorImage && newProduct.variants.colors.includes(selectedColorForImage)) {
+      const updatedColorImages = {
+        ...newProduct.colorImages,
+        [selectedColorForImage]: newColorImage
+      };
+      
+      setNewProduct({
+        ...newProduct,
+        colorImages: updatedColorImages
+      });
+      
+      // Reset the input fields
+      setNewColorImage("");
+      setSelectedColorForImage("");
+    } else if (!newProduct.variants.colors.includes(selectedColorForImage)) {
+      alert("Please add this color to the product variants first");
+    }
+  };
+  
+  // Remove a color image
+  const removeColorImage = (color) => {
+    const updatedColorImages = { ...newProduct.colorImages };
+    delete updatedColorImages[color];
+    
+    setNewProduct({
+      ...newProduct,
+      colorImages: updatedColorImages
+    });
+  };
+
   // Add a new size with price to the product variants
   const addSize = () => {
     if (newSize) {
@@ -108,7 +145,7 @@ const ProductCatalogConverter = () => {
       const sizeExists = newProduct.variants.sizes.some(sizeObj => sizeObj.size === newSize);
       
       if (!sizeExists) {
-        const price = newSizePrice ? parseFloat(newSizePrice) : 0;
+        const price = newSizePrice ? newSizePrice : "0";
         const newSizeObj = { size: newSize, price };
         
         const updatedVariants = {
@@ -129,12 +166,17 @@ const ProductCatalogConverter = () => {
 
   // Remove a color from variants
   const removeColor = (colorToRemove) => {
+    // Also remove any color image associated with this color
+    const updatedColorImages = { ...newProduct.colorImages };
+    delete updatedColorImages[colorToRemove];
+    
     setNewProduct({
       ...newProduct,
       variants: {
         ...newProduct.variants,
         colors: newProduct.variants.colors.filter(color => color !== colorToRemove)
-      }
+      },
+      colorImages: updatedColorImages
     });
   };
 
@@ -153,7 +195,7 @@ const ProductCatalogConverter = () => {
   const updateSizePrice = (sizeToUpdate, newPrice) => {
     const updatedSizes = newProduct.variants.sizes.map(sizeObj => 
       sizeObj.size === sizeToUpdate 
-        ? { ...sizeObj, price: parseFloat(newPrice) || 0 } 
+        ? { ...sizeObj, price: newPrice } 
         : sizeObj
     );
     
@@ -205,6 +247,7 @@ const ProductCatalogConverter = () => {
       id: "",
       name: "",
       image: "",
+      colorImages: {},
       specs: {},
       variants: {
         colors: [],
@@ -256,7 +299,57 @@ const ProductCatalogConverter = () => {
   };
 
   const generateJSON = () => {
-    setJsonOutput(JSON.stringify(formData, null, 2));
+    // Create a clean copy of the data to avoid any React state artifacts
+    const cleanData = {
+      productCatalog: {},
+      services: []
+    };
+    
+    // Process the product catalog data
+    Object.entries(formData.productCatalog).forEach(([categoryId, products]) => {
+      // Ensure each product has the correct structure
+      cleanData.productCatalog[categoryId] = products.map(product => ({
+        id: product.id,
+        name: product.name,
+        image: product.image, // Default image
+        colorImages: product.colorImages || {}, // Include color-specific images
+        specs: product.specs || {},
+        variants: {
+          colors: product.variants.colors || [],
+          sizes: product.variants.sizes || []
+        }
+      }));
+    });
+    
+    // Process services
+    cleanData.services = formData.services.map(service => ({
+      title: service.title,
+      description: service.description,
+      image: service.image
+    }));
+    
+    setJsonOutput(JSON.stringify(cleanData, null, 2));
+  };
+
+  const generateSingleProductJSON = () => {
+    if (newProduct.id && newProduct.name) {
+      // Create a clean copy with proper structure
+      const singleProduct = {
+        id: newProduct.id,
+        name: newProduct.name,
+        image: newProduct.image, // Default image
+        colorImages: newProduct.colorImages || {},
+        specs: newProduct.specs || {},
+        variants: {
+          colors: newProduct.variants.colors || [],
+          sizes: newProduct.variants.sizes || []
+        }
+      };
+      
+      setJsonOutput(JSON.stringify(singleProduct, null, 2));
+    } else {
+      alert("Please fill at least ID and Name fields");
+    }
   };
 
   const copyToClipboard = () => {
@@ -297,16 +390,6 @@ const ProductCatalogConverter = () => {
       ...newProduct,
       specs: updatedSpecs
     });
-  };
-
-  // Generate single product JSON for example
-  const generateSingleProductJSON = () => {
-    if (newProduct.id && newProduct.name) {
-      const singleProduct = { ...newProduct };
-      setJsonOutput(JSON.stringify(singleProduct, null, 2));
-    } else {
-      alert("Please fill at least ID and Name fields");
-    }
   };
 
   return (
@@ -403,7 +486,7 @@ const ProductCatalogConverter = () => {
                   />
                 </div>
                 <div className="col-md-4 mb-3">
-                  <label className="form-label">Image Path</label>
+                  <label className="form-label">Default Image Path</label>
                   <input
                     type="text"
                     name="image"
@@ -469,6 +552,80 @@ const ProductCatalogConverter = () => {
                   </div>
                 </div>
                 
+                {/* Color-specific Images */}
+                <div className="card mb-3">
+                  <div className="card-header bg-light">
+                    <h5 className="h6 mb-0">Color-specific Images</h5>
+                  </div>
+                  <div className="card-body">
+                    <div className="row mb-2">
+                      <div className="col-md-4">
+                        <select 
+                          className="form-select"
+                          value={selectedColorForImage}
+                          onChange={(e) => setSelectedColorForImage(e.target.value)}
+                        >
+                          <option value="">Select a color</option>
+                          {newProduct.variants.colors.map((color, idx) => (
+                            <option key={idx} value={color}>{color}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-md-5">
+                        <input
+                          type="text"
+                          value={newColorImage}
+                          onChange={(e) => setNewColorImage(e.target.value)}
+                          className="form-control"
+                          placeholder="Enter image path for this color"
+                        />
+                      </div>
+                      <div className="col-md-3">
+                        <button
+                          onClick={addColorImage}
+                          className="btn btn-success w-100"
+                          disabled={!selectedColorForImage || !newColorImage}
+                        >
+                          Add Image
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {Object.keys(newProduct.colorImages).length > 0 ? (
+                      <div className="mt-3">
+                        <h6 className="mb-2">Color-specific Images:</h6>
+                        <table className="table table-sm table-bordered">
+                          <thead>
+                            <tr>
+                              <th>Color</th>
+                              <th>Image Path</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(newProduct.colorImages).map(([color, imgPath], idx) => (
+                              <tr key={idx}>
+                                <td>{color}</td>
+                                <td>{imgPath}</td>
+                                <td>
+                                  <button
+                                    onClick={() => removeColorImage(color)}
+                                    className="btn btn-sm btn-danger"
+                                  >
+                                    Remove
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-muted small mt-2">No color-specific images added yet.</p>
+                    )}
+                  </div>
+                </div>
+                
                 {/* Size Variants with Price */}
                 <div className="card">
                   <div className="card-header bg-light">
@@ -487,12 +644,11 @@ const ProductCatalogConverter = () => {
                       </div>
                       <div className="col-md-3">
                         <input
-                          type="number"
+                          type="text"
                           value={newSizePrice}
                           onChange={(e) => setNewSizePrice(e.target.value)}
                           className="form-control"
                           placeholder="Price"
-                          step="0.01"
                         />
                       </div>
                       <div className="col-md-4">
@@ -523,12 +679,11 @@ const ProductCatalogConverter = () => {
                                   <td>{sizeObj.size}</td>
                                   <td>
                                     <input
-                                      type="number"
+                                      type="text"
                                       value={sizeObj.price}
                                       onChange={(e) => updateSizePrice(sizeObj.size, e.target.value)}
                                       className="form-control form-control-sm"
                                       placeholder="Set price"
-                                      step="0.01"
                                     />
                                   </td>
                                   <td>
@@ -665,7 +820,7 @@ const ProductCatalogConverter = () => {
                               <div>
                                 <p className="mb-1"><strong>ID:</strong> {product.id}</p>
                                 <p className="mb-1"><strong>Name:</strong> {product.name}</p>
-                                <p className="mb-1"><strong>Image:</strong> {product.image}</p>
+                                <p className="mb-1"><strong>Default Image:</strong> {product.image}</p>
                               </div>
                               <button
                                 onClick={() => removeProduct(parseInt(categoryIndex), index)}
@@ -674,6 +829,31 @@ const ProductCatalogConverter = () => {
                                 Remove
                               </button>
                             </div>
+                            
+                            {/* Display color-specific images */}
+                            {Object.keys(product.colorImages || {}).length > 0 && (
+                              <div className="mt-2">
+                                <p className="mb-1"><strong>Color Images:</strong></p>
+                                <div className="table-responsive">
+                                  <table className="table table-sm">
+                                    <thead>
+                                      <tr>
+                                        <th>Color</th>
+                                        <th>Image Path</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {Object.entries(product.colorImages).map(([color, imgPath], i) => (
+                                        <tr key={i}>
+                                          <td>{color}</td>
+                                          <td>{imgPath}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
                             
                             {/* Display colors and sizes with prices */}
                             {(product.variants.colors.length > 0 || product.variants.sizes.length > 0) && (
@@ -706,7 +886,7 @@ const ProductCatalogConverter = () => {
                                             {product.variants.sizes.map((sizeObj, i) => (
                                               <tr key={i}>
                                                 <td>{sizeObj.size}</td>
-                                                <td>${sizeObj.price.toFixed(2)}</td>
+                                                <td>{sizeObj.price}</td>
                                               </tr>
                                             ))}
                                           </tbody>
